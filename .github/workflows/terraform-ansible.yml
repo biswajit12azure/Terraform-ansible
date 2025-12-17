@@ -129,6 +129,9 @@ jobs:
         working-directory: terraform
         run: terraform apply -auto-approve tfplan
 
+      - name: Ansible Lint
+        run: pip install ansible-lint && ansible-lint -p ansible/playbook.yml
+        
       - name: Run Ansible Playbook
         working-directory: ansible
         run: ansible-playbook -i inventory.ini playbook.yml
