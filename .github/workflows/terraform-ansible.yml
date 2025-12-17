@@ -100,20 +100,28 @@ jobs:
       - name: Run OPA Policy Check
         working-directory: terraform
         run: |
-          violations=$(opa eval \
-            --format=json \
-            --input plan.json \
-            --data policies.rego \
-            "data.terraform.security.deny")
+          set +e  # disable exit-on-error temporarily
 
-          echo "$violations"
+          opa eval \
+          --format=json \
+          --input plan.json \
+          --data policies.rego \
+          "data.terraform.security.deny" > opa-result.json
 
-          if [[ "$violations" != "[]" ]]; then
-            echo "❌ OPA policy violations detected"
-            exit 1
+          set -e  # re-enable strict mode
+
+          echo "OPA evaluation result:"
+          cat opa-result.json
+
+          violations=$(jq '.result[0].expressions[0].value | length' opa-result.json)
+
+          if [ "$violations" -gt 0 ]; then
+          echo "❌ OPA policy violations detected"
+             exit 1
           else
-            echo "✅ OPA policies passed"
+           echo "✅ OPA policies passed"
           fi
+
       - name: Terraform Apply
         working-directory: terraform
         run: terraform apply -auto-approve tfplan
